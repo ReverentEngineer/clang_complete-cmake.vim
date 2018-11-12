@@ -3,27 +3,51 @@
 " Author: Jeffrey Hill <jeff@reverentengineer.com>
 "
 " Description: A clang_complete get_opts for CMake Server
-"
 
 let g:cmake_build_path = 'build'
 let g:cmake_generator = 'Unix Makefiles'
 
+    
+let s:path = fnamemodify(resolve(expand('<sfile>:p')), ':h')
 let s:cmake_server_cookie = 'vim'
 let s:cmake_server_socket = '/tmp/cmake-vim'
-let s:cmake_server_header = '[== "CMake Server" ==['
-let s:cmake_server_footer = ']== "CMake Server" ==]'
+let s:cmake_server_header = "[== \"CMake Server\" ==[\n"
+let s:cmake_server_footer = "\n]== \"CMake Server\" ==]"
 
 function! getopts#cmake#getopts()
-
-    let l:source = getcwd()
-    let l:build = l:source.'/'.g:cmake_build_path
-   
+    call ch_logfile('/tmp/channel.log')
     call s:CMakeServerStart()
-    sleep 100m
-    call s:CMakeSetup(l:source, l:build, g:cmake_generator)
 endfunction
 
 function! s:CMakeServerStart() 
+    if has('nvim')
+        call s:NeovimCMakeServerStart()
+    else
+        call s:VimCMakeServerStart()
+    endif
+endfunction
+
+function s:GenerateRandom(from, to)
+    execute "py3 import random; import vim; vim.command('let l:output = ' + str(random.randint(".a:from.", ".a:to.")))"
+    return l:output
+endfunction
+
+function! s:VimCMakeServerStart() 
+    " Remove any remnants of a socket
+    call job_start('rm '.s:cmake_server_socket)
+
+    " Start a CMake Server
+    let g:cmake_server_job = job_start('cmake -E server --experimental --pipe='.s:cmake_server_socket)
+
+    sleep 100m
+    
+    let l:cmake_server_pipe_port = s:GenerateRandom(7000,10000)
+    let l:pipe_command = 'bash -c "nc -U '.s:cmake_server_socket.'"'
+    let g:cmake_server_pipe = job_start(l:pipe_command, { 'out_cb': 'g:OnVimCMakeServerRead', 'out_mode': 'raw', 'in_mode': 'raw'})
+
+endfunction
+
+function! s:NeovimCMakeServerStart() 
     " Remove any remnants of a socket
     call jobstart('rm '.s:cmake_server_socket)
 
@@ -34,10 +58,29 @@ function! s:CMakeServerStart()
     sleep 100m
 
     " Connect to the CMake Server
-    let s:cmake_socket = sockconnect('pipe', s:cmake_server_socket, { 'on_data': 'g:OnCMakeServerRead' })
+    let s:cmake_socket = sockconnect('pipe', s:cmake_server_socket, { 'on_data': 'g:OnNeovimCMakeServerRead' })
 endfunction
 
-function! g:OnCMakeServerRead(channel, data, name)
+function! g:OnVimCMakeServerRead(channel, data)
+    let l:index = 0
+    let l:header = stridx(a:data, s:cmake_server_header, l:index)
+    while l:header != -1
+        let l:header = l:header + strlen(s:cmake_server_header)
+        let l:footer = stridx(a:data, s:cmake_server_footer, l:header)
+        if l:header != -1 && l:footer != -1
+            let l:length = l:footer - l:header
+            let l:msg = strpart(a:data, l:header, l:length)
+            
+            let l:decoded_msg = json_decode(l:msg)
+            call s:OnCMakeMessage(l:decoded_msg)
+            
+            let l:index = l:footer + strlen(s:cmake_server_footer)
+            let l:header = stridx(a:data, s:cmake_server_header, l:index) 
+        endif
+    endwhile
+endfunction
+
+function! g:OnNeovimCMakeServerRead(channel, data, name)
     let l:message_begun = 0
     for item in a:data
         if item == s:cmake_server_header
@@ -52,9 +95,12 @@ function! g:OnCMakeServerRead(channel, data, name)
 endfunction
 
 function! s:OnCMakeMessage(msg) 
-    let l:type = a:msg['type']
+    let l:type = a:msg['type'] 
     if l:type== 'hello'
         let s:cmake_server_supported_versions = a:msg['supportedProtocolVersions']
+        let l:source = getcwd()
+        let l:build = l:source.'/'.g:cmake_build_path
+        call s:CMakeSetup(l:source, l:build, g:cmake_generator)
     elseif l:type == 'reply'
         call s:OnCMakeReply(a:msg)
     elseif l:type == 'error'
@@ -80,17 +126,19 @@ endfunction
 
 function! s:CMakeSendMessage(msg)
     let l:msg = "\n".s:cmake_server_header."\n".json_encode(a:msg)."\n".s:cmake_server_footer."\n"
-    return chansend(s:cmake_socket, l:msg)
+    if has('nvim')
+        let l:count = chansend(s:cmake_socket, l:msg)
+    else 
+        sleep 100m
+        let l:count = strlen(ch_sendraw(g:cmake_server_pipe, l:msg))
+    endif
+    return l:count
 endfunction
 
 " Send handshake message
 function! s:CMakeSetup(source, build, generator) 
-    if !exists('s:cmake_handshake_complete') || s:cmake_handshake_complete == 0
-        let l:handshake = { 'cookie': s:cmake_server_cookie, 'type': 'handshake', 'sourceDirectory': a:source, 'buildDirectory': a:build, 'protocolVersion': s:cmake_server_supported_versions[0], 'generator': g:cmake_generator }
-        call s:CMakeSendMessage(l:handshake)
-    else 
-        echoe 'CMake Server already connected'
-    endif
+    let l:handshake = { 'cookie': s:cmake_server_cookie, 'type': 'handshake', 'sourceDirectory': a:source, 'buildDirectory': a:build, 'protocolVersion': s:cmake_server_supported_versions[0], 'generator': g:cmake_generator }
+    call s:CMakeSendMessage(l:handshake)
 endfunction
 
 " Send configure message
