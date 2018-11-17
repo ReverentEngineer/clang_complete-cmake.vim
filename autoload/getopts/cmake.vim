@@ -11,8 +11,8 @@ let g:cmake_generator = 'Unix Makefiles'
 let s:path = fnamemodify(resolve(expand('<sfile>:p')), ':h')
 let s:cmake_server_cookie = 'vim'
 let s:cmake_server_socket = '/tmp/cmake-vim'
-let s:cmake_server_header = "[== \"CMake Server\" ==[\n"
-let s:cmake_server_footer = "\n]== \"CMake Server\" ==]"
+let s:cmake_server_header = "[== \"CMake Server\" ==["
+let s:cmake_server_footer = "]== \"CMake Server\" ==]"
 
 function! getopts#cmake#getopts()
     call s:CMakeServerStart()
@@ -64,7 +64,7 @@ function! g:OnVimCMakeServerRead(channel, data)
     let l:index = 0
     let l:header = stridx(a:data, s:cmake_server_header, l:index)
     while l:header != -1
-        let l:header = l:header + strlen(s:cmake_server_header)
+        let l:header = l:header + strlen(s:cmake_server_header) + 1 " +1 for newline
         let l:footer = stridx(a:data, s:cmake_server_footer, l:header)
         if l:header != -1 && l:footer != -1
             let l:length = l:footer - l:header
@@ -74,7 +74,7 @@ function! g:OnVimCMakeServerRead(channel, data)
             call s:OnCMakeMessage(l:decoded_msg)
             
             let l:index = l:footer + strlen(s:cmake_server_footer)
-            let l:header = stridx(a:data, s:cmake_server_header, l:index) 
+            let l:header = stridx(a:data, s:cmake_server_header, l:index) + 1 " +1 for newline 
         endif
     endwhile
 endfunction
