@@ -15,7 +15,6 @@ let s:cmake_server_header = "[== \"CMake Server\" ==[\n"
 let s:cmake_server_footer = "\n]== \"CMake Server\" ==]"
 
 function! getopts#cmake#getopts()
-    call ch_logfile('/tmp/channel.log')
     call s:CMakeServerStart()
 endfunction
 
