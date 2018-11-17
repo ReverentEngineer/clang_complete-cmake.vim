@@ -97,7 +97,11 @@ function! s:OnCMakeMessage(msg)
     let l:type = a:msg['type'] 
     if l:type== 'hello'
         let s:cmake_server_supported_versions = a:msg['supportedProtocolVersions']
-        let l:source = getcwd()
+        if exists('*FindRootDirectory')
+            let l:source = FindRootDirectory()
+        else 
+            let l:source = getcwd()
+        endif
         let l:build = l:source.'/'.g:cmake_build_path
         call s:CMakeSetup(l:source, l:build, g:cmake_generator)
     elseif l:type == 'reply'
