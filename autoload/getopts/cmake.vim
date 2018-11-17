@@ -4,9 +4,14 @@
 "
 " Description: A clang_complete get_opts for CMake Server
 
-let g:cmake_build_path = 'build'
-let g:cmake_generator = 'Unix Makefiles'
 
+if !exists('g:cmake_build_path')
+    let g:cmake_build_path = 'build'
+endif
+
+if !exists('g:cmake_generator')
+    let g:cmake_generator = 'Unix Makefiles'
+endif
     
 let s:path = fnamemodify(resolve(expand('<sfile>:p')), ':h')
 let s:cmake_server_cookie = 'vim'
