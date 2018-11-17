@@ -26,8 +26,10 @@ endfunction
 function! s:CMakeServerStart() 
     if has('nvim')
         call s:NeovimCMakeServerStart()
-    else
+    elseif exists('*job_start')
         call s:VimCMakeServerStart()
+    else
+        echom "clang_complete-cmake: Can't find job_start. This seems to be an unsupported version of Vim."
     endif
 endfunction
 
