@@ -35,7 +35,7 @@ function! s:VimCMakeServerStart()
 
     sleep 100m
     
-    let l:pipe_command = 'bash -c "nc -U '.s:cmake_server_socket.'"'
+    let l:pipe_command = '/usr/bin/env nc -U '.s:cmake_server_socket.''
     let g:cmake_server_pipe = job_start(l:pipe_command, { 'out_cb': 'g:OnVimCMakeServerRead', 'out_mode': 'raw', 'in_mode': 'raw'})
 
 endfunction
