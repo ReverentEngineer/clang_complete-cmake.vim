@@ -75,7 +75,7 @@ function! g:OnVimCMakeServerRead(channel, data)
             call s:OnCMakeMessage(l:decoded_msg)
             
             let l:index = l:footer + strlen(s:cmake_server_footer)
-            let l:header = stridx(a:data, s:cmake_server_header, l:index) + 1 " +1 for newline 
+            let l:header = stridx(a:data, s:cmake_server_header, l:index) 
         endif
     endwhile
 endfunction
