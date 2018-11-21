@@ -26,11 +26,6 @@ function! s:CMakeServerStart()
     endif
 endfunction
 
-function s:GenerateRandom(from, to)
-    execute "py3 import random; import vim; vim.command('let l:output = ' + str(random.randint(".a:from.", ".a:to.")))"
-    return l:output
-endfunction
-
 function! s:VimCMakeServerStart() 
     " Remove any remnants of a socket
     call job_start('rm '.s:cmake_server_socket)
@@ -40,7 +35,6 @@ function! s:VimCMakeServerStart()
 
     sleep 100m
     
-    let l:cmake_server_pipe_port = s:GenerateRandom(7000,10000)
     let l:pipe_command = 'bash -c "nc -U '.s:cmake_server_socket.'"'
     let g:cmake_server_pipe = job_start(l:pipe_command, { 'out_cb': 'g:OnVimCMakeServerRead', 'out_mode': 'raw', 'in_mode': 'raw'})
 
