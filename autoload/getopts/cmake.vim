@@ -21,8 +21,10 @@ endfunction
 function! s:CMakeServerStart() 
     if has('nvim')
         call s:NeovimCMakeServerStart()
-    else
+    elseif has('job')
         call s:VimCMakeServerStart()
+    else
+        echoe 'This vim does not support job control'
     endif
 endfunction
 
