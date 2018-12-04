@@ -12,53 +12,46 @@ endif
 if !exists('g:cmake_generator')
     let g:cmake_generator = 'Unix Makefiles'
 endif
-    
+
+if !exists('g:cmake_server_socket')
+    let g:cmake_server_socket = '/tmp/cmake-vim'
+endif
+
 let s:path = fnamemodify(resolve(expand('<sfile>:p')), ':h')
 let s:cmake_server_cookie = 'vim'
-let s:cmake_server_socket = '/tmp/cmake-vim'
 let s:cmake_server_header = "[== \"CMake Server\" ==["
 let s:cmake_server_footer = "]== \"CMake Server\" ==]"
 
 function! getopts#cmake#getopts()
     call s:CMakeServerStart()
+    sleep 100m
+    call s:CMakeServerConnect()
 endfunction
 
 function! s:CMakeServerStart() 
+    let l:rm_socket_cmd = 'rm '.g:cmake_server_socket
+    let l:cmake_server_cmd = 'cmake -E server --experimental --pipe='.g:cmake_server_socket
     if has('nvim')
-        call s:NeovimCMakeServerStart()
+        call jobstart(l:rm_socket_cmd)
+        call jobstart(l:cmake_server_cmd)
     elseif has('job')
-        call s:VimCMakeServerStart()
+        call job_start(l:rm_socket_cmd)
+        call job_start(l:cmake_server_cmd)
     else
         echoe "clang_complete-cmake: No job control supported in this version of vim."
     endif
 endfunction
 
-function! s:VimCMakeServerStart() 
-    " Remove any remnants of a socket
-    call job_start('rm '.s:cmake_server_socket)
-
-    " Start a CMake Server
-    let g:cmake_server_job = job_start('cmake -E server --experimental --pipe='.s:cmake_server_socket)
-
-    sleep 100m
-    
-    let l:pipe_command = '/usr/bin/env nc -U '.s:cmake_server_socket.''
-    let g:cmake_server_pipe = job_start(l:pipe_command, { 'out_cb': 'g:OnVimCMakeServerRead', 'out_mode': 'raw', 'in_mode': 'raw'})
-
-endfunction
-
-function! s:NeovimCMakeServerStart() 
-    " Remove any remnants of a socket
-    call jobstart('rm '.s:cmake_server_socket)
-
-    " Start a CMake Server
-    let s:cmake_server_job = jobstart('cmake -E server --experimental --pipe='.s:cmake_server_socket)
-    
-    " Sleep to give the server time to startup
-    sleep 100m
-
-    " Connect to the CMake Server
-    let s:cmake_socket = sockconnect('pipe', s:cmake_server_socket, { 'on_data': 'g:OnNeovimCMakeServerRead' })
+function! s:CMakeServerConnect()
+    if has('nvim')
+        let s:cmake_socket = sockconnect('pipe', g:cmake_server_socket, { 'on_data': 'g:OnNeovimCMakeServerRead' })
+    elseif has('job')
+        let l:pipe_command = '/usr/bin/env nc -U '.s:cmake_server_socket
+        let l:cmd_options = { 'out_cb': 'g:OnVimCMakeServerRead', 'out_mode': 'raw', 'in_mode': 'raw'}
+        let s:cmake_server_pipe = job_start(l:pipe_command, l:cmd_options)
+    else
+        echoe "clang_complete-cmake: No job control supported in this version of vim."
+    endif
 endfunction
 
 function! g:OnVimCMakeServerRead(channel, data)
@@ -70,10 +63,10 @@ function! g:OnVimCMakeServerRead(channel, data)
         if l:header != -1 && l:footer != -1
             let l:length = l:footer - l:header
             let l:msg = strpart(a:data, l:header, l:length)
-            
+
             let l:decoded_msg = json_decode(l:msg)
             call s:OnCMakeMessage(l:decoded_msg)
-            
+
             let l:index = l:footer + strlen(s:cmake_server_footer)
             let l:header = stridx(a:data, s:cmake_server_header, l:index) 
         endif
@@ -134,7 +127,7 @@ function! s:CMakeSendMessage(msg)
         let l:count = chansend(s:cmake_socket, l:msg)
     else 
         sleep 100m
-        let l:count = strlen(ch_sendraw(g:cmake_server_pipe, l:msg))
+        let l:count = strlen(ch_sendraw(s:cmake_server_pipe, l:msg))
     endif
     return l:count
 endfunction
