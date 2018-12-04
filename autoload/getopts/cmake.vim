@@ -33,7 +33,7 @@ function! s:CMakeServerStart()
     let l:cmake_server_cmd = 'cmake -E server --experimental --pipe='.g:cmake_server_socket
     if has('nvim')
         call jobstart(l:rm_socket_cmd)
-        call jobstart(l:cmake_server_cmd, { 'detach': v:true })
+        call jobstart(l:cmake_server_cmd, { 'detach': 1 })
     elseif has('job')
         call job_start(l:rm_socket_cmd)
         call job_start(l:cmake_server_cmd, { "stoponexit": "" })
@@ -46,7 +46,7 @@ function! s:CMakeServerConnect()
     if has('nvim')
         let s:cmake_socket = sockconnect('pipe', g:cmake_server_socket, { 'on_data': 'g:OnNeovimCMakeServerRead' })
     elseif has('job')
-        let l:pipe_command = '/usr/bin/env nc -U '.s:cmake_server_socket
+        let l:pipe_command = '/usr/bin/env nc -U '.g:cmake_server_socket
         let l:cmd_options = { 'out_cb': 'g:OnVimCMakeServerRead', 'out_mode': 'raw', 'in_mode': 'raw'}
         let s:cmake_server_pipe = job_start(l:pipe_command, l:cmd_options)
     else
