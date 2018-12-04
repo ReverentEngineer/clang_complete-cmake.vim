@@ -153,27 +153,33 @@ endfunction
 
 " Send compute message
 function! g:CMakeGenerate()
-   let l:compute = { 'cookie': s:cmake_server_cookie, 'type': 'compute' }
-   call s:CMakeSendMessage(l:compute)
+    let l:compute = { 'cookie': s:cmake_server_cookie, 'type': 'compute' }
+    call s:CMakeSendMessage(l:compute)
 endfunction
 
 " Request code model
 function! g:CMakeGetCodeModel()
-   let l:code_model = { 'cookie': s:cmake_server_cookie, 'type': 'codemodel' }
-   call s:CMakeSendMessage(l:code_model)
+    let l:code_model = { 'cookie': s:cmake_server_cookie, 'type': 'codemodel' }
+    call s:CMakeSendMessage(l:code_model)
 endfunction
 
 function! s:CMakeParseCodeModel(codemodel)
     let l:cmake_includes = []
     for configuration in a:codemodel['configurations']
         for project in configuration['projects']
-            for target in project['targets']
-                for fileGroup in target['fileGroups']
-                    for includePath in fileGroup['includePath']
-                        call insert(l:cmake_includes, includePath['path'])
-                    endfor
+            if has_key(project, 'targets')
+                for target in project['targets']
+                    if has_key(target, 'fileGroups')
+                        for fileGroup in target['fileGroups']
+                            if has_key(fileGroup, 'includePath')
+                                for includePath in fileGroup['includePath']
+                                    call insert(l:cmake_includes, includePath['path'])
+                                endfor
+                            endif
+                        endfor
+                    endif
                 endfor
-            endfor
+            endif
         endfor
     endfor
     let l:cmake_includes = uniq(l:cmake_includes)
