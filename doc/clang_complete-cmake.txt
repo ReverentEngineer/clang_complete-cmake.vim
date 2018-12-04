@@ -1,0 +1,39 @@
+cmake source plugin for clang_complete                 *clang_complete-cmake*  
+
+===============================================================================
+Table of Contents                                   *clang_complete-cmake-toc*
+
+   1. Description....... |clang_complete-cmake-description|
+   2. Configuration..... |clang_complete-cmake-configuration|
+   3. Resources......... |clang_complete-cmake-resources|
+
+===============================================================================
+1. Description                               *clang_complete-cmake-description*                
+
+This is a getopts plugin for clang_complete that uses CMake's
+server functionality to retrieve the compile flags, headers, and defines for
+a project that uses CMake for a build system.
+
+===============================================================================
+2. Configuration                           *clang_complete-cmake-configuration*
+
+                                            *clang_complete-cmake-build*
+                                            *g:cmake_build_path*
+Sets the relative directory where to locate build directory. (Default: build)
+                                            
+                                            *clang_complete-cmake-cache-args*
+                                            *g:cmake_cache_arguments*
+Sets the cache arguments to be used to configure CMake. (Default: [])
+
+                                            *clang_complete-cmake-generator*
+                                            *g:cmake_generator*
+Sets the CMake generator to use for builds. (Default: Unix Makefiles)
+
+===============================================================================
+3. Resources                                   *clang_complete-cmake-resources* 
+
+Author: Jeffrey Hill <jeff@reverentengineer.com>
+
+Repository: https://github.com/ReverentEngineer/clang_complete-cmake.vim
+
+
