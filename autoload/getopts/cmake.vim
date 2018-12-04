@@ -158,6 +158,8 @@ endfunction
 
 function! s:CMakeParseCodeModel(codemodel)
     let l:cmake_includes = []
+    let l:cmake_defines = []
+    let l:cmake_flags = []
     for configuration in a:codemodel['configurations']
         for project in configuration['projects']
             if has_key(project, 'targets')
@@ -169,6 +171,12 @@ function! s:CMakeParseCodeModel(codemodel)
                                     call insert(l:cmake_includes, includePath['path'])
                                 endfor
                             endif
+                            if has_key(fileGroup, 'defines')
+                                call extend(l:cmake_defines, fileGroup['defines'])
+                            endif
+                            if has_key(fileGroup, 'compileFlags')
+                                call insert(l:cmake_flags, fileGroup['compileFlags'])
+                            endif
                         endfor
                     endif
                 endfor
@@ -176,8 +184,16 @@ function! s:CMakeParseCodeModel(codemodel)
         endfor
     endfor
     let l:cmake_includes = uniq(l:cmake_includes)
+    let l:cmake_defines = uniq(l:cmake_defines)
+    let l:cmake_flags = uniq(l:cmake_flags)
     for path in l:cmake_includes
         let b:clang_user_options .= ' -I'.path
+    endfor
+    for define in l:cmake_defines
+        let b:clang_user_options .= ' -D'.define
+    endfor
+    for flags in l:cmake_flags
+        let b:clang_user_options .= ' '.flags
     endfor
 endfunction
 
