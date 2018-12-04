@@ -33,10 +33,10 @@ function! s:CMakeServerStart()
     let l:cmake_server_cmd = 'cmake -E server --experimental --pipe='.g:cmake_server_socket
     if has('nvim')
         call jobstart(l:rm_socket_cmd)
-        call jobstart(l:cmake_server_cmd, { 'detach': v:true })
+        call jobstart(l:cmake_server_cmd)
     elseif has('job')
         call job_start(l:rm_socket_cmd)
-        call job_start(l:cmake_server_cmd, { "stoponexit": "" })
+        call job_start(l:cmake_server_cmd)
     else
         echoe "clang_complete-cmake: No job control supported in this version of vim."
     endif
