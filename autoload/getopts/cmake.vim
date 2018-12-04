@@ -13,14 +13,16 @@ if !exists('g:cmake_generator')
     let g:cmake_generator = 'Unix Makefiles'
 endif
 
-if !exists('g:cmake_server_socket')
-    let g:cmake_server_socket = '/tmp/cmake-vim'
+" If there are no cache arguments, set empty arguments. 
+if !exists('g:cmake_cache_arguments')
+    let g:cmake_cache_arguments = []
 endif
 
 let s:path = fnamemodify(resolve(expand('<sfile>:p')), ':h')
 let s:cmake_server_cookie = 'vim'
 let s:cmake_server_header = "[== \"CMake Server\" ==["
 let s:cmake_server_footer = "]== \"CMake Server\" ==]"
+let s:cmake_server_socket = tempname()
 
 function! getopts#cmake#getopts()
     call s:CMakeServerStart()
@@ -29,8 +31,8 @@ function! getopts#cmake#getopts()
 endfunction
 
 function! s:CMakeServerStart() 
-    let l:rm_socket_cmd = 'rm '.g:cmake_server_socket
-    let l:cmake_server_cmd = 'cmake -E server --experimental --pipe='.g:cmake_server_socket
+    let l:rm_socket_cmd = 'rm '.s:cmake_server_socket
+    let l:cmake_server_cmd = 'cmake -E server --experimental --pipe='.s:cmake_server_socket
     if has('nvim')
         call jobstart(l:rm_socket_cmd)
         call jobstart(l:cmake_server_cmd)
@@ -44,7 +46,7 @@ endfunction
 
 function! s:CMakeServerConnect()
     if has('nvim')
-        let s:cmake_socket = sockconnect('pipe', g:cmake_server_socket, { 'on_data': 'g:OnNeovimCMakeServerRead' })
+        let s:cmake_socket = sockconnect('pipe', s:cmake_server_socket, { 'on_data': 'g:OnNeovimCMakeServerRead' })
     elseif has('job')
         let l:pipe_command = '/usr/bin/env nc -U '.s:cmake_server_socket
         let l:cmd_options = { 'out_cb': 'g:OnVimCMakeServerRead', 'out_mode': 'raw', 'in_mode': 'raw'}
@@ -109,7 +111,7 @@ function! s:OnCMakeReply(msg)
     let l:inReplyTo = a:msg['inReplyTo']
     if l:inReplyTo == 'handshake'
         let s:cmake_handshake_complete = 1
-        call g:CMakeConfigure('')
+        call g:CMakeConfigure(g:cmake_cache_arguments)
     elseif l:inReplyTo == 'configure'
         let s:cmake_configured = 1
         call g:CMakeGenerate()
