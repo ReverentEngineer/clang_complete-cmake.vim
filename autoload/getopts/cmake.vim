@@ -23,9 +23,34 @@ let s:cmake_server_header = "[== \"CMake Server\" ==["
 let s:cmake_server_footer = "]== \"CMake Server\" ==]"
 
 function! getopts#cmake#getopts()
-    call s:CMakeServerStart()
-    sleep 100m
+    call s:IsCMakeServerRunning()
+endfunction
+
+function! s:IsCMakeServerRunning()
+    let l:pgrep_cmd = 'pgrep -f "cmake -E server"'
+    if has('nvim')
+        call jobstart(l:pgrep_cmd, { 'on_exit': })
+    elseif has('job')
+        call job_start(l:pgrep_cmd, { 'on_exit': })
+    else
+        echoe "clang_complete-cmake: No job control supported in this version of vim."
+    endif
+endfunction
+
+function! s:CMakeResultCheck(exit_status)
+    if a:exit_status !=
+        call s:CMakeServerStart()
+        sleep 100m
+    endif
     call s:CMakeServerConnect()
+endfunction
+
+function! s:NeovimCheck(job_id, data, event)
+    call s:CMakeResultCheck(a:data)
+endfunction
+
+function! s:VimCheck(job, data)
+    call s:CMakeResultCheck(a:data)
 endfunction
 
 function! s:CMakeServerStart() 
