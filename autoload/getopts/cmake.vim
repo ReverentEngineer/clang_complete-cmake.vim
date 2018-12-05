@@ -23,6 +23,8 @@ let s:cmake_server_cookie = 'vim'
 let s:cmake_server_header = "[== \"CMake Server\" ==["
 let s:cmake_server_footer = "]== \"CMake Server\" ==]"
 let s:cmake_server_socket = tempname()
+let s:cmake_socket_buffer = ''
+let s:message_begun = 0
 
 function! getopts#cmake#getopts()
     call s:CMakeServerStart()
@@ -76,15 +78,16 @@ function! g:OnVimCMakeServerRead(channel, data)
 endfunction
 
 function! g:OnNeovimCMakeServerRead(channel, data, name)
-    let l:message_begun = 0
     for item in a:data
         if item == s:cmake_server_header
-            let l:message_begun = 1
+            let s:message_begun = 1
         elseif item == s:cmake_server_footer
-            let l:message_begun = 0
-        elseif l:message_begun == 1
-            let l:msg = json_decode(item)
-            call s:OnCMakeMessage(msg)
+            let l:msg = json_decode(s:cmake_socket_buffer)
+            call s:OnCMakeMessage(l:msg)
+            let s:cmake_socket_buffer = ''
+            let s:message_begun = 0
+        elseif s:message_begun == 1
+            let s:cmake_socket_buffer .= item
         endif
     endfor
 endfunction
