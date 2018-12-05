@@ -60,21 +60,28 @@ endfunction
 
 function! g:OnVimCMakeServerRead(channel, data)
     let l:index = 0
-    let l:header = stridx(a:data, s:cmake_server_header, l:index)
+    let s:cmake_socket_buffer .= a:data
+    let l:header = stridx(s:cmake_socket_buffer, s:cmake_server_header, l:index)
     while l:header != -1
         let l:header = l:header + strlen(s:cmake_server_header) + 1 " +1 for newline
-        let l:footer = stridx(a:data, s:cmake_server_footer, l:header)
+        let l:footer = stridx(s:cmake_socket_buffer, s:cmake_server_footer, l:header)
         if l:header != -1 && l:footer != -1
             let l:length = l:footer - l:header
-            let l:msg = strpart(a:data, l:header, l:length)
+            let l:msg = strpart(s:cmake_socket_buffer, l:header, l:length)
 
             let l:decoded_msg = json_decode(l:msg)
             call s:OnCMakeMessage(l:decoded_msg)
 
-            let l:index = l:footer + strlen(s:cmake_server_footer)
-            let l:header = stridx(a:data, s:cmake_server_header, l:index) 
+            let l:index = l:footer + strlen(s:cmake_server_footer) + 1
+            let l:header = stridx(s:cmake_socket_buffer, s:cmake_server_header, l:index) 
         endif
     endwhile
+    if l:index < strlen(s:cmake_socket_buffer):
+        let l:length = strlen(s:cmake_socket_buffer) - l:index
+        let s:cmake_socket_buffer = strpart(s:cmake_socket_buffer, l:index, l:length)
+    else
+        let s:cmake_socket_buffer = ''
+    endif
 endfunction
 
 function! g:OnNeovimCMakeServerRead(channel, data, name)
