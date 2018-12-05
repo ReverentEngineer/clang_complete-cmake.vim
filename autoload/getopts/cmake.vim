@@ -76,7 +76,7 @@ function! g:OnVimCMakeServerRead(channel, data)
             let l:header = stridx(s:cmake_socket_buffer, s:cmake_server_header, l:index) 
         endif
     endwhile
-    if l:index < strlen(s:cmake_socket_buffer):
+    if l:index < strlen(s:cmake_socket_buffer)
         let l:length = strlen(s:cmake_socket_buffer) - l:index
         let s:cmake_socket_buffer = strpart(s:cmake_socket_buffer, l:index, l:length)
     else
