@@ -162,43 +162,43 @@ function! g:CMakeGetCodeModel()
 endfunction
 
 function! s:CMakeParseCodeModel(codemodel)
-    let l:cmake_includes = []
-    let l:cmake_defines = []
-    let l:cmake_flags = []
+    let l:file_path=expand('%:p')
     for configuration in a:codemodel['configurations']
         for project in configuration['projects']
             if has_key(project, 'targets')
                 for target in project['targets']
-                    if has_key(target, 'fileGroups')
-                        for fileGroup in target['fileGroups']
-                            if has_key(fileGroup, 'includePath')
-                                for includePath in fileGroup['includePath']
-                                    call insert(l:cmake_includes, includePath['path'])
+                    if has_key(target, 'sourceDirectory')
+                        let l:src_dir = target['sourceDirectory']
+                        if stridx(l:file_path, l:src_dir) == 0
+                            if has_key(target, 'fileGroups')
+                                for fileGroup in target['fileGroups']
+                                    if has_key(fileGroup, 'sources')
+                                        for src in fileGroup['sources']
+                                            if l:file_path == l:src_dir.'/'.src
+                                                if has_key(fileGroup, 'includePath')
+                                                    for includePath in fileGroup['includePath']
+                                                        let b:clang_user_options .= ' -I'.includePath['path']
+                                                    endfor
+                                                endif
+                                                if has_key(fileGroup, 'defines')
+                                                    for define in fileGroup['defines']
+                                                        let b:clang_user_options .= ' -D'.define
+                                                    endfor
+                                                endif
+                                                if has_key(fileGroup, 'compileFlags')
+                                                    let b:clang_user_options .= fileGroup['compileFlags']
+                                                endif
+                                                return
+                                            endif
+                                        endfor
+                                    endif
                                 endfor
                             endif
-                            if has_key(fileGroup, 'defines')
-                                call extend(l:cmake_defines, fileGroup['defines'])
-                            endif
-                            if has_key(fileGroup, 'compileFlags')
-                                call insert(l:cmake_flags, fileGroup['compileFlags'])
-                            endif
-                        endfor
+                        endif
                     endif
                 endfor
             endif
         endfor
-    endfor
-    let l:cmake_includes = uniq(l:cmake_includes)
-    let l:cmake_defines = uniq(l:cmake_defines)
-    let l:cmake_flags = uniq(l:cmake_flags)
-    for path in l:cmake_includes
-        let b:clang_user_options .= ' -I'.path
-    endfor
-    for define in l:cmake_defines
-        let b:clang_user_options .= ' -D'.define
-    endfor
-    for flags in l:cmake_flags
-        let b:clang_user_options .= ' '.flags
     endfor
 endfunction
 
