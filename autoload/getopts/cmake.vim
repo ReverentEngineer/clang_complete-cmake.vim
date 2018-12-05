@@ -98,8 +98,11 @@ function! s:OnCMakeMessage(msg)
         else 
             let l:source = getcwd()
         endif
-        let l:build = l:source.'/'.g:cmake_build_path
-        call s:CMakeSetup(l:source, l:build, g:cmake_generator)
+
+        if len(l:source) > 0
+            let l:build = l:source.'/'.g:cmake_build_path
+            call s:CMakeSetup(l:source, l:build, g:cmake_generator)
+        endif
     elseif l:type == 'reply'
         call s:OnCMakeReply(a:msg)
     elseif l:type == 'error'
