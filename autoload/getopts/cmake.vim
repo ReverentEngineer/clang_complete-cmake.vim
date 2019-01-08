@@ -172,13 +172,13 @@ function! g:CMakeGetCodeModel()
 endfunction
 
 function! s:CMakeParseCodeModel(codemodel)
-    let l:file_path=expand('%:p')
+    let l:file_path=resolve(expand('%:p'))
     for configuration in a:codemodel['configurations']
         for project in configuration['projects']
             if has_key(project, 'targets')
                 for target in project['targets']
                     if has_key(target, 'sourceDirectory')
-                        let l:src_dir = target['sourceDirectory']
+                        let l:src_dir = resolve(target['sourceDirectory'])
                         if stridx(l:file_path, l:src_dir) == 0
                             if has_key(target, 'fileGroups')
                                 for fileGroup in target['fileGroups']
